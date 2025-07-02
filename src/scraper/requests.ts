@@ -8,6 +8,7 @@ export interface ScrapeUserFeedResponse {
           code: string // DLnIOXeshcc
           pk: string // 3667936593172371228
           id: string // 3667936593172371228_25025320,
+          like_count: number // 1234
           caption: {
             created_at: number // timestamp in seconds
             text: string // some description text,

@@ -23,6 +23,10 @@ const validator = z.object({
    * Should be a string with cookies in the format: "cookie1=value1; cookie2=value2; ..."
    */
   SCRAPER_COOKIES: z.string(),
+  /**
+   * Minimum like count for a post.
+   */
+  MIN_LIKE_COUNT: z.number().int().min(0).default(50),
 })
 
 export const parse = validator.safeParse(process.env)

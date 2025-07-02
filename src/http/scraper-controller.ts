@@ -14,6 +14,8 @@ export async function scraperController(http: FastifyInstance) {
     userAgent: config.SCRAPER_USERAGENT,
   })
 
+  const minLikeCount = config.MIN_LIKE_COUNT
+
   http.route<{ Querystring: { username: string } }>({
     method: 'GET',
     url: '/api/scrape/best-user-picture',
@@ -48,27 +50,57 @@ export async function scraperController(http: FastifyInstance) {
         url: string
         height: number
         width: number
+        likeCount: number
       }
 
+      const postWithLikes = items.map(el => ({
+        likeCount: el.node.like_count || 0,
+        images: el.node.image_versions2.candidates,
+      }))
+
       // select the best quality image for each post
-      const bestPictures = items.map(el => el.node.image_versions2.candidates)
-        .map(post => {
-          return post.reduce((acc: ScrapedPicture | null, el: ScrapedPicture) => {
-            if (!acc) {
-              return el
+      // and filter out those with like count less than minLikeCount
+      const bestPostPictures = postWithLikes.flatMap(post => {
+        const likeCount = post.likeCount
+        const images = post.images
+
+        let currentImage: ScrapedPicture | null = null
+
+        for (const img of images) {
+          if (!currentImage) {
+            currentImage = {
+              url: img.url,
+              height: img.height,
+              width: img.width,
+              likeCount: likeCount,
             }
+            continue
+          }
 
-            const accVolume = acc.height + acc.width
-            const elVolume = el.height + el.width
+          const currentVolume = currentImage.height * currentImage.width
+          const newVolume = img.height * img.width
 
-            return elVolume > accVolume ? el : acc
-          }, null)
-        }) as Array<ScrapedPicture>
+          if (newVolume > currentVolume) {
+            currentImage = {
+              url: img.url,
+              height: img.height,
+              width: img.width,
+              likeCount: likeCount,
+            }
+          }
+        }
+
+        if (!currentImage || currentImage.likeCount < minLikeCount) {
+          return []
+        }
+
+        return [currentImage]
+      })
 
 
-      req.log.debug({username, count: bestPictures.length}, 'Found posts in user feed')
+      req.log.debug({username, count: bestPostPictures.length}, 'Found posts in user feed')
 
-      const nearToRectanglePictures = bestPictures.filter(picture => {
+      const nearToRectanglePictures = bestPostPictures.filter(picture => {
         const aspectRatio = picture.width / picture.height
 
         return aspectRatio >= 0.8 && aspectRatio <= 1.2
