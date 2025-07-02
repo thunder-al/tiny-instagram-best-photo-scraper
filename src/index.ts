@@ -1,15 +1,6 @@
-import {createScraperClient} from './scraper/client.ts'
-import {config} from './config.ts'
-import {scrapeUserFeedItems} from './scraper/requests.ts'
+import {http} from './http'
 
-const client = createScraperClient({
-  cookies: config.SCRAPER_COOKIES,
-  userAgent: config.SCRAPER_USERAGENT,
+await http.listen({
+  port: 8000,
+  host: '0.0.0.0',
 })
-
-const data = await scrapeUserFeedItems(
-  client,
-  'instagram',
-)
-
-console.log(data)

@@ -41,7 +41,7 @@ export interface ScrapeUserFeedResponse {
   }
 }
 
-export async function scrapeUserFeedItems(client: AxiosInstance, username: string, count = 12) {
+export async function scrapeUserFeedItems(client: AxiosInstance, username: string, count = 12): Promise<ScrapeUserFeedResponse> {
   const params = new URLSearchParams()
 
   params.append('fb_api_caller_class', 'RelayModern')

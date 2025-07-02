@@ -2,6 +2,10 @@ import {z} from 'zod'
 
 const validator = z.object({
   /**
+   * Log level for the application.
+   */
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'silent']).default('info'),
+  /**
    * Base url to OpenAI like API
    */
   AI_API_URL: z.string().url(),
