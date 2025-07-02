@@ -10,6 +10,15 @@ const validator = z.object({
    * Leave as an empty line
    */
   AI_API_KEY: z.string(),
+  /**
+   * Instagram browser User-Agent.
+   */
+  SCRAPER_USERAGENT: z.string(),
+  /**
+   * Instagram session cookies.
+   * Should be a string with cookies in the format: "cookie1=value1; cookie2=value2; ..."
+   */
+  SCRAPER_COOKIES: z.string(),
 })
 
 export const parse = validator.safeParse(process.env)
