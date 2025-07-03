@@ -4,8 +4,10 @@ import {config} from '../config.ts'
 import {scrapeUserFeedItems} from '../scraper/requests.ts'
 import {safePromise} from '../util/functional.ts'
 import {createError} from '@fastify/error'
+import {getLLMImageScore} from '../llm/llm-image-score.ts'
 
 const ScrapeError = createError('APP_SCRAPE_ERROR', 'Failed to scrape user feed items: %s', 400)
+const ProcessError = createError('APP_SCRAPE_PROCESS_ERROR', 'Failed to process feed items: %s', 400)
 
 export async function scraperController(http: FastifyInstance) {
 
@@ -97,24 +99,29 @@ export async function scraperController(http: FastifyInstance) {
         return [currentImage]
       })
 
-
       req.log.debug({username, count: bestPostPictures.length}, 'Found posts in user feed')
 
-      const nearToRectanglePictures = bestPostPictures.filter(picture => {
-        const aspectRatio = picture.width / picture.height
-
-        return aspectRatio >= 0.8 && aspectRatio <= 1.2
-      })
-      if (nearToRectanglePictures.length === 0) {
-        return {
-          username,
-          items: [],
-        }
+      req.log.debug({username, count: bestPostPictures.length}, 'Performing LLM ranking of pictures')
+      const imageUrls = bestPostPictures.map(picture => picture.url)
+      const [ranks, ranksError] = await safePromise(getLLMImageScore(imageUrls, scraperClient))
+      if (ranksError) {
+        req.log.error({username, error: ranksError}, 'Failed to get LLM image scores')
+        throw new ProcessError(ranksError.message)
       }
+
+      const rankedPictures = bestPostPictures.map((pic, idx) => ({
+        ...pic,
+        llmRank: ranks[idx] || 0,
+      }))
+
+      rankedPictures.sort((a, b) => b.llmRank - a.llmRank)
+
+      req.log.debug({username, ranks: ranks}, 'Images where successfully ranked by LLM')
 
       return {
         username,
-        items: nearToRectanglePictures,
+        items: rankedPictures
+          .filter(el => el.llmRank >= config.MIN_LLM_IMAGE_RANK_SCORE),
       }
     },
   })

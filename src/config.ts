@@ -15,6 +15,11 @@ const validator = z.object({
    */
   AI_API_KEY: z.string(),
   /**
+   * Name of the AI model to use.
+   * Example: "gpt-3.5-turbo"
+   */
+  AI_MODEL_NAME: z.string(),
+  /**
    * Instagram browser User-Agent.
    */
   SCRAPER_USERAGENT: z.string(),
@@ -27,6 +32,10 @@ const validator = z.object({
    * Minimum like count for a post.
    */
   MIN_LIKE_COUNT: z.number().int().min(0).default(50),
+  /**
+   * Minimum score for an image to be considered good.
+   */
+  MIN_LLM_IMAGE_RANK_SCORE: z.coerce.number().gt(0).lte(100).default(45),
 })
 
 export const parse = validator.safeParse(process.env)
